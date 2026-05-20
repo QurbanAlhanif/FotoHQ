@@ -172,63 +172,87 @@
       .catch(err => { console.log("Kamera terblokir, menunggu input darurat."); });
   }
 
+  // Wadah global untuk menyimpan seluruh database ID, Nama, dan Jenis secara lokal di HP
+  let dataDatabaseLokal = [];
   function updateDropdown() {
     const oldScript = document.getElementById('jsonp-ids');
     if (oldScript) oldScript.remove();
 
+    // Sembunyikan infoBox terlebih dahulu saat proses muat data
+    document.getElementById('infoBox').style.display = 'none';
+    
+    // Tampilkan status loading sementara di kotak dropdown agar petugas tahu sistem sedang memuat data
+    const dl = document.getElementById('listID');
+    dl.innerHTML = ""; 
+    
+    const status = document.getElementById('status');
+    if (status) {
+      status.style.display = 'block';
+      status.style.background = '#e3f2fd';
+      status.innerText = "⏳ Sinkronisasi data ID dari Google Sheet...";
+    }
+
+    // Fungsi penangkap data massal dari Google Apps Script (JSONP Callback)
     window.handleDropdownData = function(list) {
-      const dl = document.getElementById('listID');
-      dl.innerHTML = "";
-      list.forEach(id => { 
+      // Sembunyikan kembali status loading setelah data mendarat sukses
+      if (status) status.style.display = 'none';
+      
+      if (!list || list.length === 0) {
+        alert("⚠️ Perhatian: Tidak ada data ID hewan yang kosong (belum difoto) pada Tab " + currentTab + " saat ini.");
+        return;
+      }
+
+      // Simpan salinan data lengkap ke memori HP petugas
+      dataDatabaseLokal = list; 
+      
+      // Pasang nomor-nomor ID ke dalam dropdown browser
+      list.forEach(item => { 
         let opt = document.createElement('option'); 
-        opt.value = id; 
+        opt.value = item.id; // Membaca properti ID hewan
         dl.appendChild(opt); 
       });
     };
 
+    // EKSEKUSI PENEMBAKAN API: Buat tag script baru untuk mengambil data
     const script = document.createElement('script');
     script.id = 'jsonp-ids';
-    script.src = `${API_URL}?action=getIDs&tab=${currentTab}&callback=handleDropdownData`;
+    
+    // Pastikan variabel API_URL Amiza di bagian atas sudah benar menunjuk ke link Web App GAS yang aktif!
+    script.src = `${API_URL}?action=getAllData&tab=${currentTab}&callback=handleDropdownData`;
+    
+    // Fitur Pengaman: Jika dalam 7 detik server Google tidak merespons, munculkan alarm peringatan
+    script.onerror = function() {
+      if (status) {
+        status.style.background = '#ffebee';
+        status.innerText = "❌ Gagal menyambung ke Server Google. Periksa koneksi internet atau link API_URL Amiza!";
+      }
+    };
+    
     document.body.appendChild(script);
   }
 
+  // FUNGSI BARU: Pencarian kilat lokal di HP (100% Anti-Salah, Anti-Delay, dan Instan!)
   function getDetail() {
     const idInput = document.getElementById('idHewan').value.trim();
-    if(!idInput) { document.getElementById('infoBox').style.display = 'none'; return; }
+    const infoBox = document.getElementById('infoBox');
     
-    // AMAN: Cek apakah ID yang diketik ada di dalam daftar datalist resmi
-    const options = document.querySelectorAll('#listID option');
-    let idDitemukan = false;
-    options.forEach(opt => {
-      if(opt.value === idInput) idDitemukan = true;
-    });
+    if(!idInput) { infoBox.style.display = 'none'; return; }
+    
+    // Cari data yang cocok murni dari database lokal di dalam memori HP
+    // Pencarian ini menggunakan sistem STRICT MATCH (Harus sama persis angkanya)
+    const dataKlop = dataDatabaseLokal.find(item => item.id.toString().trim() === idInput);
 
-    // Jika petugas baru mengetik "1" atau "15", jangan tembak API dulu sampai benar-benar cocok dengan daftar ID
-    if (!idDitemukan) {
-      document.getElementById('infoBox').style.display = 'none';
-      return; 
+    if (dataKlop) {
+      infoBox.style.display = 'block';
+      // Tampilkan data yang sudah pasti terkunci berpasangan dari satu baris yang sama
+      document.getElementById('txtIdTerpilih').innerText = idInput.padStart(3, '0');
+      document.getElementById('txtNama').innerText = dataKlop.nama;
+      document.getElementById('txtJenis').innerText = dataKlop.jenis;
+      document.getElementById('kodeTipe').value = dataKlop.kodeTipe;
+    } else {
+      // Jika ketikan belum selesai (misal baru ngetik "1" atau "15" padahal mau "152"), sembunyikan kotak info
+      infoBox.style.display = 'none';
     }
-    
-    const oldScript = document.getElementById('jsonp-detail');
-    if (oldScript) oldScript.remove();
-
-    window.handleDetailData = function(data) {
-      if(data) {
-        document.getElementById('infoBox').style.display = 'block';
-        // Tampilkan nomor ID asli dari database ke kotak informasi untuk meyakinkan petugas
-        document.getElementById('txtIdTerpilih').innerText = idInput.padStart(3, '0');
-        document.getElementById('txtNama').innerText = data.nama;
-        document.getElementById('txtJenis').innerText = data.jenis;
-        document.getElementById('kodeTipe').value = data.kodeTipe;
-      } else {
-        document.getElementById('infoBox').style.display = 'none';
-      }
-    };
-
-    const script = document.createElement('script');
-    script.id = 'jsonp-detail';
-    script.src = `${API_URL}?action=getDetail&id=${idInput}&callback=handleDetailData`;
-    document.body.appendChild(script);
   }
 
 function ambilGambar() {

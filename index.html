@@ -70,12 +70,14 @@
       <input type="hidden" id="kodeTipe">
     </div>
 
+
     <div class="form-group">
       <label>Bidik Kamera ke Hewan Qurban</label>
+      <!-- PASTIKAN VIDEO DAN PREVIEW DI DALAM SATU KOTAK INI -->
       <div class="camera-container">
         <video id="video" autoplay playsinline></video>
+        <img id="preview" class="preview-img" alt="Hasil Foto">
       </div>
-      <img id="preview" class="preview-img" alt="Hasil Foto">
       <button class="btn btn-snap" id="btnSnap" onclick="ambilGambar()">📸 AMBIL FOTO</button>
     </div>
 
@@ -269,7 +271,17 @@ function ambilGambar() {
     }
   }
 
-  function uploadDataKeSheet() {
+function uploadDataKeSheet() {
+    const petugas = document.getElementById('petugas').value.trim();
+    const inisial = document.getElementById('inisial').value.trim();
+    const idHewan = document.getElementById('idHewan').value.trim();
+
+    // VALIDASI KETAT GANTI SENSOR REQUIRED BROWSER
+    if (!petugas) { alert("⚠️ NAMA PETUGAS WAJIB DIISI!"); return; }
+    if (!inisial) { alert("⚠️ INISIAL WAJIB DIISI!"); return; }
+    if (!idHewan) { alert("⚠️ NOMOR ID HEWAN WAJIB DIPILIH!"); return; }
+    if (!fotoBase64Data) { alert("⚠️ FOTO HEWAN BELUM DIAMBIL! Silakan bidik kamera terlebih dahulu."); return; }
+
     const btn = document.getElementById('btnSubmit');
     const btnSnap = document.getElementById('btnSnap');
     const status = document.getElementById('status');
@@ -282,9 +294,9 @@ function ambilGambar() {
 
     const payload = {
       tab: currentTab,
-      petugas: document.getElementById('petugas').value,
-      inisial: document.getElementById('inisial').value,
-      idHewan: document.getElementById('idHewan').value,
+      petugas: petugas,
+      inisial: inisial,
+      idHewan: idHewan,
       namaPequrban: document.getElementById('txtNama').innerText,
       jenisHQ: document.getElementById('txtJenis').innerText,
       kodeTipe: document.getElementById('kodeTipe').value,
@@ -311,15 +323,14 @@ function ambilGambar() {
       iframe = document.createElement('iframe');
       iframe.name = iframeName;
       iframe.id = iframeName;
-      iframe.style.display = 'none';
+      iframe.style.style.display = 'none';
       document.body.appendChild(iframe);
     }
 
     form.target = iframeName;
     form.submit();
 
-setTimeout(() => {
-      // LOGIKA BARU: Cek jika tab saat ini adalah 3 (Sembelih) tampilkan tulisan WA Terkirim, jika tab 1 atau 2 jangan tampilkan.
+    setTimeout(() => {
       let teksSukses = "Berhasil! Foto ID " + payload.idHewan.padStart(3, '0') + " telah tersimpan ke Google Sheet";
       if (currentTab == 3) {
         teksSukses += " & WA Terkirim.";

@@ -35,10 +35,10 @@
 <body>
 
 <div class="container">
-  <!-- PENGATUR SWITCH MODE HARI (ANTI SALAH PENCET) -->
-  <div class="mode-switcher">
+  <!-- PENGATUR SWITCH MODE HARI (HANYA MUNCUL JIKA DIAKSES ADMIN) -->
+  <div class="mode-switcher" id="adminPanel" style="display: none;">
     <button class="btn-mode active-mode" id="mode1" onclick="setModeHari('pra')">📅 Mode Kandang</button>
-    <button class="btn-mode" id="mode2" onclick="setModeHari('h')">🥩 Mode Hari-H (Sembelih 1 & 2)</button>
+    <button class="btn-mode" id="mode2" onclick="setModeHari('h')">🥩 Mode Hari-H (Sembelih)</button>
   </div>
 
   <div class="tabs">
@@ -96,7 +96,18 @@
   let fotoBase64Data = null;
 
   window.onload = () => {
-    setModeHari('pra'); // Setelan awal saat pertama kali dibuka adalah Mode Pra-H
+    // Membaca parameter yang ada di URL Browser
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('pencet'); // Mengambil teks setelah kata '?pencet='
+    const setMode = urlParams.get('hari') || 'pra'; // Default awal adalah 'pra' jika tidak diatur
+
+    // KUNCI RAHASIA: Jika link mengandung kata ?pencet=admin, maka panel tombol dimunculkan
+    if (role === 'admin') {
+      document.getElementById('adminPanel').style.display = 'flex';
+    }
+
+    // Jalankan setelan mode hari sesuai perintah URL
+    setModeHari(setMode);
     aktifkanKameraBelakang();
   };
 

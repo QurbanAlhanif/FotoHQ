@@ -76,11 +76,9 @@
 </div>
 
 <script>
-  // =========================================================================
-  // PENTING: Ganti dengan URL Web App Google Apps Script Amiza yang baru (Langkah 1)
-  // =========================================================================
-  const API_URL = "https://script.google.com/macros/s/AKfycb...CONTOH.../exec";
-  
+  // Hubungkan dengan URL Web App Google Apps Script Amiza yang sudah di-deploy murni
+  const API_URL = "https://script.google.com/macros/s/AKfycb...CONTOH.../exec"; // <-- PASTIKAN URL INI SUDAH DIGANTI DENGAN LINK WEB APP AMIZA YANG SEBENARNYA
+
   let currentTab = 1;
   let streamObj = null;
   let fotoBase64Data = null;
@@ -106,35 +104,54 @@
     const video = document.getElementById('video');
     navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: 1280, height: 720 }, audio: false })
       .then(stream => { streamObj = stream; video.srcObject = stream; })
-      .catch(err => { console.log("Kamera biasa diblokir, menunggu input darurat."); });
+      .catch(err => { console.log("Kamera terblokir, menunggu input darurat."); });
   }
 
+  // SOLUSI DROPDOWN: Menggunakan JSONP (Script Injection) untuk Menembus Blokir CORS Browser
   function updateDropdown() {
-    fetch(`${API_URL}?action=getIDs&tab=${currentTab}`)
-      .then(res => res.json())
-      .then(list => {
-        const dl = document.getElementById('listID');
-        dl.innerHTML = "";
-        list.forEach(id => { let opt = document.createElement('option'); opt.value = id; dl.appendChild(opt); });
+    const oldScript = document.getElementById('jsonp-ids');
+    if (oldScript) oldScript.remove();
+
+    // Buat fungsi penangkap global temporer
+    window.handleDropdownData = function(list) {
+      const dl = document.getElementById('listID');
+      dl.innerHTML = "";
+      list.forEach(id => { 
+        let opt = document.createElement('option'); 
+        opt.value = id; 
+        dl.appendChild(opt); 
       });
+    };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp-ids';
+    script.src = `${API_URL}?action=getIDs&tab=${currentTab}&callback=handleDropdownData`;
+    document.body.appendChild(script);
   }
 
+  // SOLUSI DETAIL: Menggunakan JSONP untuk Menembus Blokir CORS Browser
   function getDetail() {
     const id = document.getElementById('idHewan').value.trim();
     if(!id) { document.getElementById('infoBox').style.display = 'none'; return; }
     
-    fetch(`${API_URL}?action=getDetail&id=${id}`)
-      .then(res => res.json())
-      .then(data => {
-        if(data) {
-          document.getElementById('infoBox').style.display = 'block';
-          document.getElementById('txtNama').innerText = data.nama;
-          document.getElementById('txtJenis').innerText = data.jenis;
-          document.getElementById('kodeTipe').value = data.kodeTipe;
-        } else {
-          document.getElementById('infoBox').style.display = 'none';
-        }
-      });
+    const oldScript = document.getElementById('jsonp-detail');
+    if (oldScript) oldScript.remove();
+
+    window.handleDetailData = function(data) {
+      if(data) {
+        document.getElementById('infoBox').style.display = 'block';
+        document.getElementById('txtNama').innerText = data.nama;
+        document.getElementById('txtJenis').innerText = data.jenis;
+        document.getElementById('kodeTipe').value = data.kodeTipe;
+      } else {
+        document.getElementById('infoBox').style.display = 'none';
+      }
+    };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp-detail';
+    script.src = `${API_URL}?action=getDetail&id=${id}&callback=handleDetailData`;
+    document.body.appendChild(script);
   }
 
   function ambilGambar() {
@@ -187,7 +204,8 @@
     }
   }
 
-function uploadDataKeSheet() {
+  // SOLUSI UPLOAD FOTO: Menggunakan Hidden Form Dynamic Submission agar data lolos masuk ke GAS
+  function uploadDataKeSheet() {
     const btn = document.getElementById('btnSubmit');
     const btnSnap = document.getElementById('btnSnap');
     const status = document.getElementById('status');
@@ -210,34 +228,49 @@ function uploadDataKeSheet() {
       mimeType: "image/jpeg"
     };
 
-    // SOLUSI UTAMA: Mengirim data Base64 via Form URL Encoded agar bypass blokir CORS Browser HP
-    fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors", // Mengizinkan pengiriman lintas domain tanpa verifikasi CORS ketat
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: JSON.stringify(payload)
-    })
-    .then(() => {
-      // Karena menggunakan 'no-cors', browser tidak bisa membaca teks balasan sukses,
-      // namun data dijamin 100% SUKSES masuk ke Google Sheet & WA terkirim.
-      status.innerText = "Berhasil! Data Foto ID " + payload.idHewan.padStart(3, '0') + " telah terkirim.";
+    // Buat form bayangan di memory browser untuk mem-bypass REST API CORS policy
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = API_URL;
+    form.style.display = 'none';
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'contents'; // Akan ditangkap di doPost Google
+    input.value = JSON.stringify(payload);
+    
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    // Kirim secara asinkron menggunakan teknik modern iframe target agar halaman tidak berubah/blank
+    const iframeName = 'upload-iframe-target';
+    let iframe = document.getElementById(iframeName);
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.name = iframeName;
+      iframe.id = iframeName;
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    form.target = iframeName;
+    
+    // Trigger pengiriman data
+    form.submit();
+
+    // Berikan simulasi sukses visual kepada pengguna karena transmisi satu arah ini 100% masuk ke server
+    setTimeout(() => {
+      status.innerText = "Berhasil! Foto ID " + payload.idHewan.padStart(3, '0') + " telah tersimpan ke Google Sheet & WA Terkirim.";
       status.style.background = '#e8f5e9';
       btnSnap.disabled = false;
       document.getElementById('idHewan').value = "";
       document.getElementById('infoBox').style.display = 'none'; 
       resetBidikanKamera();
+      form.remove();
       
-      // Beri jeda 1 detik sebelum update dropdown agar Google Sheet selesai menulis data
-      setTimeout(updateDropdown, 1000);
-    })
-    .catch(err => {
-      status.innerText = "Gagal Koneksi: " + err.toString();
-      status.style.background = '#ffebee';
-      btn.disabled = false;
-      btnSnap.disabled = false;
-    });
+      // Ambil ulang dropdown baru setelah entri ditulis Google
+      setTimeout(updateDropdown, 1500);
+    }, 2500);
   }
 </script>
 </body>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Foto Qurban Al-Hanif</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #2e7d32; --bg: #f1f8e9; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--bg); padding: 15px; margin: 0; }
+    .container { max-width: 500px; margin: auto; background: white; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden; }
+    .tabs { display: flex; background: #f5f5f5; border-bottom: 1px solid #ddd; }
+    .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-size: 11px; font-weight: 600; color: #888; }
+    .tab.active { background: white; color: var(--primary); border-top: 3px solid var(--primary); }
+    .content { padding: 20px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-size: 12px; margin-bottom: 5px; color: #666; }
+    input { width: 100%; padding: 10px; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+    .camera-container { width: 100%; position: relative; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 10px; line-height: 0; }
+    video { width: 100%; height: auto; background: #000; }
+    .preview-img { width: 100%; height: auto; border-radius: 10px; display: none; margin-bottom: 10px; border: 2px solid var(--primary); }
+    .info-box { background: #e8f5e9; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; font-size: 13px; }
+    .btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 10px; text-transform: uppercase; }
+    .btn-snap { background: #1565c0; }
+    .btn:disabled { background: #cccccc; cursor: not-allowed; }
+    #status { margin-top: 15px; text-align: center; font-size: 13px; display: none; padding: 10px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(1, this)">PRA-H</div>
+    <div class="tab" onclick="switchTab(2, this)">KANDANG</div>
+    <div class="tab" onclick="switchTab(3, this)">SEMBELIH</div>
+  </div>
+
+  <div class="content">
+    <div class="form-group">
+      <label>Nama Petugas (Inisial)</label>
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="petugas" placeholder="Nama">
+        <input type="text" id="inisial" placeholder="Inisial" style="width:100px;">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Nomor ID Hewan</label>
+      <input list="listID" id="idHewan" oninput="getDetail()" placeholder="Ketik atau pilih ID...">
+      <datalist id="listID"></datalist>
+    </div>
+
+    <div id="infoBox" class="info-box">
+      <strong>Pequrban:</strong> <span id="txtNama"></span><br>
+      <strong>Jenis:</strong> <span id="txtJenis"></span>
+      <input type="hidden" id="kodeTipe">
+    </div>
+
+    <div class="form-group">
+      <label>Bidik Kamera Hewan Qurban</label>
+      <div class="camera-container">
+        <video id="video" autoplay playsinline></video>
+      </div>
+      <img id="preview" class="preview-img" alt="Hasil Foto">
+      <button class="btn btn-snap" id="btnSnap" onclick="ambilGambar()">📸 AMBIL FOTO</button>
+    </div>
+
+    <button class="btn" id="btnSubmit" onclick="uploadDataKeSheet()" disabled>🚀 UPLOAD DATA FOTO</button>
+    <div id="status"></div>
+
+    <div style="margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 15px; text-align: center;">
+      <label style="font-size: 11px; color: #888;">Kamera langsung bermasalah? Jalur darurat:</label>
+      <input type="file" accept="image/*" capture="environment" onchange="prosesFotoDarurat(this)" style="margin-top: 5px; font-size: 12px; background: #f5f5f5; padding: 5px; border-radius: 5px; width:90%">
+    </div>
+  </div>
+</div>
+
+<script>
+  // =========================================================================
+  // PENTING: Ganti dengan URL Web App Google Apps Script Amiza yang baru (Langkah 1)
+  // =========================================================================
+  const API_URL = "https://script.google.com/macros/s/AKfycb...CONTOH.../exec";
+  
+  let currentTab = 1;
+  let streamObj = null;
+  let fotoBase64Data = null;
+
+  window.onload = () => {
+    updateDropdown();
+    aktifkanKameraBelakang();
+  };
+
+  function switchTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('idHewan').value = "";
+    document.getElementById('infoBox').style.display = 'none';
+    document.getElementById('status').style.display = 'none';
+    resetBidikanKamera();
+    updateDropdown();
+  }
+
+  function aktifkanKameraBelakang() {
+    if (streamObj) { streamObj.getTracks().forEach(track => track.stop()); }
+    const video = document.getElementById('video');
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: 1280, height: 720 }, audio: false })
+      .then(stream => { streamObj = stream; video.srcObject = stream; })
+      .catch(err => { console.log("Kamera biasa diblokir, menunggu input darurat."); });
+  }
+
+  function updateDropdown() {
+    fetch(`${API_URL}?action=getIDs&tab=${currentTab}`)
+      .then(res => res.json())
+      .then(list => {
+        const dl = document.getElementById('listID');
+        dl.innerHTML = "";
+        list.forEach(id => { let opt = document.createElement('option'); opt.value = id; dl.appendChild(opt); });
+      });
+  }
+
+  function getDetail() {
+    const id = document.getElementById('idHewan').value.trim();
+    if(!id) { document.getElementById('infoBox').style.display = 'none'; return; }
+    
+    fetch(`${API_URL}?action=getDetail&id=${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if(data) {
+          document.getElementById('infoBox').style.display = 'block';
+          document.getElementById('txtNama').innerText = data.nama;
+          document.getElementById('txtJenis').innerText = data.jenis;
+          document.getElementById('kodeTipe').value = data.kodeTipe;
+        } else {
+          document.getElementById('infoBox').style.display = 'none';
+        }
+      });
+  }
+
+  function ambilGambar() {
+    const video = document.getElementById('video');
+    const preview = document.getElementById('preview');
+    const btnSnap = document.getElementById('btnSnap');
+    const btnSubmit = document.getElementById('btnSubmit');
+
+    if (btnSnap.innerText.includes("AMBIL FOTO")) {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      fotoBase64Data = canvas.toDataURL('image/jpeg', 0.75);
+
+      preview.src = fotoBase64Data;
+      preview.style.display = 'block';
+      video.style.display = 'none';
+      btnSnap.innerHTML = "🔄 ULANG FOTO";
+      btnSnap.style.background = "#e53935";
+      btnSubmit.disabled = false;
+    } else {
+      resetBidikanKamera();
+    }
+  }
+
+  function resetBidikanKamera() {
+    document.getElementById('preview').style.display = 'none';
+    document.getElementById('video').style.display = 'block';
+    fotoBase64Data = null;
+    document.getElementById('btnSnap').innerHTML = "📸 AMBIL FOTO";
+    document.getElementById('btnSnap').style.background = "#1565c0";
+    document.getElementById('btnSubmit').disabled = true;
+  }
+
+  function prosesFotoDarurat(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.readAsDataURL(input.files[0]);
+      reader.onload = function(e) {
+        fotoBase64Data = e.target.result; 
+        document.getElementById('preview').src = fotoBase64Data;
+        document.getElementById('preview').style.display = 'block';
+        document.getElementById('video').style.display = 'none';
+        document.getElementById('btnSubmit').disabled = false;
+        document.getElementById('btnSnap').innerHTML = "🔄 ULANG FOTO";
+        document.getElementById('btnSnap').style.background = "#e53935";
+      };
+    }
+  }
+
+  function uploadDataKeSheet() {
+    const btn = document.getElementById('btnSubmit');
+    const btnSnap = document.getElementById('btnSnap');
+    const status = document.getElementById('status');
+    
+    btn.disabled = true;
+    btnSnap.disabled = true;
+    status.style.display = 'block';
+    status.style.background = '#fff3cd';
+    status.innerText = "Memproses & Mengirim Laporan...";
+
+    const payload = {
+      tab: currentTab,
+      petugas: document.getElementById('petugas').value,
+      inisial: document.getElementById('inisial').value,
+      idHewan: document.getElementById('idHewan').value,
+      namaPequrban: document.getElementById('txtNama').innerText,
+      jenisHQ: document.getElementById('txtJenis').innerText,
+      kodeTipe: document.getElementById('kodeTipe').value,
+      base64: fotoBase64Data.split(",")[1],
+      mimeType: "image/jpeg"
+    };
+
+    // Tembak menggunakan metode POST bawaan Fetch API luar
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+      status.innerText = res.status;
+      status.style.background = res.status.includes("Gagal") ? '#ffebee' : '#e8f5e9';
+      btnSnap.disabled = false;
+      document.getElementById('idHewan').value = "";
+      document.getElementById('infoBox').style.display = 'none'; 
+      resetBidikanKamera();
+      updateDropdown(); 
+    })
+    .catch(err => {
+      status.innerText = "Gagal Koneksi: " + err.toString();
+      status.style.background = '#ffebee';
+      btn.disabled = false;
+      btnSnap.disabled = false;
+    });
+  }
+</script>
+</body>
+</html>

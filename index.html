@@ -9,8 +9,14 @@
     :root { --primary: #2e7d32; --bg: #f1f8e9; }
     body { font-family: 'Poppins', sans-serif; background-color: var(--bg); padding: 15px; margin: 0; }
     .container { max-width: 500px; margin: auto; background: white; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden; }
+    
+    /* Desain Switch Mode Pengatur Hari */
+    .mode-switcher { display: flex; background: #e0e0e0; padding: 5px; gap: 5px; border-bottom: 2px solid #ccc; }
+    .btn-mode { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px; font-size: 11px; font-weight: 600; color: #555; cursor: pointer; text-transform: uppercase; transition: all 0.3s; }
+    .btn-mode.active-mode { background: #fff; color: #000; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+    
     .tabs { display: flex; background: #f5f5f5; border-bottom: 1px solid #ddd; }
-    .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-size: 11px; font-weight: 600; color: #888; }
+    .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-size: 11px; font-weight: 600; color: #888; display: block; }
     .tab.active { background: white; color: var(--primary); border-top: 3px solid var(--primary); }
     .content { padding: 20px; }
     .form-group { margin-bottom: 15px; }
@@ -29,10 +35,16 @@
 <body>
 
 <div class="container">
+  <!-- PENGATUR SWITCH MODE HARI (ANTI SALAH PENCET) -->
+  <div class="mode-switcher">
+    <button class="btn-mode active-mode" id="mode1" onclick="setModeHari('pra')">📅 Mode Pra-H</button>
+    <button class="btn-mode" id="mode2" onclick="setModeHari('h')">🥩 Mode Hari-H (Kandang/Sembelih)</button>
+  </div>
+
   <div class="tabs">
-    <div class="tab active" onclick="switchTab(1, this)">PRA-H</div>
-    <div class="tab" onclick="switchTab(2, this)">KANDANG</div>
-    <div class="tab" onclick="switchTab(3, this)">SEMBELIH</div>
+    <div class="tab active" id="tabMenu1" onclick="switchTab(1, this)">KANDANG</div>
+    <div class="tab" id="tabMenu2" onclick="switchTab(2, this)">SEMBELIH 1</div>
+    <div class="tab" id="tabMenu3" onclick="switchTab(3, this)">SEMBELIH 2</div>
   </div>
 
   <div class="content">
@@ -76,17 +88,53 @@
 </div>
 
 <script>
-  // Hubungkan dengan URL Web App Google Apps Script Amiza yang sudah di-deploy murni
-  const API_URL = "https://script.google.com/macros/s/AKfycbwu9x3PyUFmlK1sxHHS0b3SjoTLHJTK_a8g0WN-HVMlF6u0gbEiH8RpdbEq6pMqq9lR/exec"; // <-- PASTIKAN URL INI SUDAH DIGANTI DENGAN LINK WEB APP AMIZA YANG SEBENARNYA
+  // Hubungkan dengan URL Web App Google Apps Script Om Za yang asli
+  const API_URL = "https://script.google.com/macros/s/AKfycbwu9x3PyUFmlK1sxHHS0b3SjoTLHJTK_a8g0WN-HVMlF6u0gbEiH8RpdbEq6pMqq9lR/exec"; 
 
   let currentTab = 1;
   let streamObj = null;
   let fotoBase64Data = null;
 
   window.onload = () => {
-    updateDropdown();
+    setModeHari('pra'); // Setelan awal saat pertama kali dibuka adalah Mode Pra-H
     aktifkanKameraBelakang();
   };
+
+  // LOGIKA SWITCH TOMBOL PENGATUR HARI
+  function setModeHari(mode) {
+    const btnPra = document.getElementById('mode1');
+    const btnHariH = document.getElementById('mode2');
+    const tab1 = document.getElementById('tabMenu1');
+    const tab2 = document.getElementById('tabMenu2');
+    const tab3 = document.getElementById('tabMenu3');
+
+    document.getElementById('idHewan').value = "";
+    document.getElementById('infoBox').style.display = 'none';
+    document.getElementById('status').style.display = 'none';
+    resetBidikanKamera();
+
+    if (mode === 'pra') {
+      btnPra.classList.add('active-mode');
+      btnHariH.classList.remove('active-mode');
+      
+      // Sembunyikan Kandang dan Sembelih, Tampilkan Pra-H
+      tab1.style.display = 'block';
+      tab2.style.display = 'none';
+      tab3.style.display = 'none';
+      
+      switchTab(1, tab1);
+    } else {
+      btnPra.classList.remove('active-mode');
+      btnHariH.classList.add('active-mode');
+      
+      // Sembunyikan Pra-H, Tampilkan Kandang dan Sembelih bersamaan
+      tab1.style.display = 'none';
+      tab2.style.display = 'block';
+      tab3.style.display = 'block';
+      
+      switchTab(2, tab2); // Langsung arahkan default ke Tab Kandang
+    }
+  }
 
   function switchTab(tab, el) {
     currentTab = tab;
@@ -107,12 +155,10 @@
       .catch(err => { console.log("Kamera terblokir, menunggu input darurat."); });
   }
 
-  // SOLUSI DROPDOWN: Menggunakan JSONP (Script Injection) untuk Menembus Blokir CORS Browser
   function updateDropdown() {
     const oldScript = document.getElementById('jsonp-ids');
     if (oldScript) oldScript.remove();
 
-    // Buat fungsi penangkap global temporer
     window.handleDropdownData = function(list) {
       const dl = document.getElementById('listID');
       dl.innerHTML = "";
@@ -129,7 +175,6 @@
     document.body.appendChild(script);
   }
 
-  // SOLUSI DETAIL: Menggunakan JSONP untuk Menembus Blokir CORS Browser
   function getDetail() {
     const id = document.getElementById('idHewan').value.trim();
     if(!id) { document.getElementById('infoBox').style.display = 'none'; return; }
@@ -204,7 +249,6 @@
     }
   }
 
-  // SOLUSI UPLOAD FOTO: Menggunakan Hidden Form Dynamic Submission agar data lolos masuk ke GAS
   function uploadDataKeSheet() {
     const btn = document.getElementById('btnSubmit');
     const btnSnap = document.getElementById('btnSnap');
@@ -228,7 +272,6 @@
       mimeType: "image/jpeg"
     };
 
-    // Buat form bayangan di memory browser untuk mem-bypass REST API CORS policy
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = API_URL;
@@ -236,13 +279,12 @@
 
     const input = document.createElement('input');
     input.type = 'hidden';
-    input.name = 'contents'; // Akan ditangkap di doPost Google
+    input.name = 'contents';
     input.value = JSON.stringify(payload);
     
     form.appendChild(input);
     document.body.appendChild(form);
 
-    // Kirim secara asinkron menggunakan teknik modern iframe target agar halaman tidak berubah/blank
     const iframeName = 'upload-iframe-target';
     let iframe = document.getElementById(iframeName);
     if (!iframe) {
@@ -254,11 +296,8 @@
     }
 
     form.target = iframeName;
-    
-    // Trigger pengiriman data
     form.submit();
 
-    // Berikan simulasi sukses visual kepada pengguna karena transmisi satu arah ini 100% masuk ke server
     setTimeout(() => {
       status.innerText = "Berhasil! Foto ID " + payload.idHewan.padStart(3, '0') + " telah tersimpan ke Google Sheet & WA Terkirim.";
       status.style.background = '#e8f5e9';
@@ -268,7 +307,6 @@
       resetBidikanKamera();
       form.remove();
       
-      // Ambil ulang dropdown baru setelah entri ditulis Google
       setTimeout(updateDropdown, 1500);
     }, 2500);
   }

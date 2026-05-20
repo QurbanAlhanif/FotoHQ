@@ -65,6 +65,8 @@
     </div>
 
     <div id="infoBox" class="info-box">
+      <!-- TAMBAHKAN BARIS NOMOR ID -->
+      <strong>Nomor ID Klop:</strong> <span id="txtIdTerpilih" style="color: #2e7d32; font-weight: bold;"></span><br>
       <strong>Pequrban:</strong> <span id="txtNama"></span><br>
       <strong>Jenis:</strong> <span id="txtJenis"></span>
       <input type="hidden" id="kodeTipe">
@@ -191,8 +193,21 @@
   }
 
   function getDetail() {
-    const id = document.getElementById('idHewan').value.trim();
-    if(!id) { document.getElementById('infoBox').style.display = 'none'; return; }
+    const idInput = document.getElementById('idHewan').value.trim();
+    if(!idInput) { document.getElementById('infoBox').style.display = 'none'; return; }
+    
+    // AMAN: Cek apakah ID yang diketik ada di dalam daftar datalist resmi
+    const options = document.querySelectorAll('#listID option');
+    let idDitemukan = false;
+    options.forEach(opt => {
+      if(opt.value === idInput) idDitemukan = true;
+    });
+
+    // Jika petugas baru mengetik "1" atau "15", jangan tembak API dulu sampai benar-benar cocok dengan daftar ID
+    if (!idDitemukan) {
+      document.getElementById('infoBox').style.display = 'none';
+      return; 
+    }
     
     const oldScript = document.getElementById('jsonp-detail');
     if (oldScript) oldScript.remove();
@@ -200,6 +215,8 @@
     window.handleDetailData = function(data) {
       if(data) {
         document.getElementById('infoBox').style.display = 'block';
+        // Tampilkan nomor ID asli dari database ke kotak informasi untuk meyakinkan petugas
+        document.getElementById('txtIdTerpilih').innerText = idInput.padStart(3, '0');
         document.getElementById('txtNama').innerText = data.nama;
         document.getElementById('txtJenis').innerText = data.jenis;
         document.getElementById('kodeTipe').value = data.kodeTipe;
@@ -210,7 +227,7 @@
 
     const script = document.createElement('script');
     script.id = 'jsonp-detail';
-    script.src = `${API_URL}?action=getDetail&id=${id}&callback=handleDetailData`;
+    script.src = `${API_URL}?action=getDetail&id=${idInput}&callback=handleDetailData`;
     document.body.appendChild(script);
   }
 

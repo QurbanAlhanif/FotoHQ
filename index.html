@@ -298,8 +298,16 @@
     form.target = iframeName;
     form.submit();
 
-    setTimeout(() => {
-      status.innerText = "Berhasil! Foto ID " + payload.idHewan.padStart(3, '0') + " telah tersimpan ke Google Sheet & WA Terkirim.";
+setTimeout(() => {
+      // LOGIKA BARU: Cek jika tab saat ini adalah 3 (Sembelih) tampilkan tulisan WA Terkirim, jika tab 1 atau 2 jangan tampilkan.
+      let teksSukses = "Berhasil! Foto ID " + payload.idHewan.padStart(3, '0') + " telah tersimpan ke Google Sheet";
+      if (currentTab == 3) {
+        teksSukses += " & WA Terkirim.";
+      } else {
+        teksSukses += ".";
+      }
+      
+      status.innerText = teksSukses;
       status.style.background = '#e8f5e9';
       btnSnap.disabled = false;
       document.getElementById('idHewan').value = "";

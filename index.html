@@ -3,95 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Foto Qurban Al-Hanif</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <title>Kamera Qurban Al-Hanif</title>
   <style>
-  :root { --primary: #2e7d32; }
-  body { font-family: sans-serif; background: #f1f8e9; padding: 10px; }
-  .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; }
-  .tab { display: none; padding: 10px; background: #ddd; margin-top: 5px; cursor: pointer; text-align: center; font-weight: bold; }
-  .tab.active { display: block; background: var(--primary); color: white; }
-  .camera-container { width: 100%; height: 300px; background: #000; position: relative; overflow: hidden; }
-  video { width: 100%; height: 100%; object-fit: cover; }
-</style>
+    body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 10px; }
+    .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 10px; }
+    /* Memastikan container kamera stabil */
+    #video { width: 100%; height: 300px; background: #000; object-fit: cover; }
+    .btn { width: 100%; padding: 15px; background: #2e7d32; color: white; border: none; margin-top: 10px; font-weight: bold; border-radius: 5px; }
+  </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- PENGATUR SWITCH MODE HARI (HANYA MUNCUL JIKA DIAKSES ADMIN) -->
-  <div class="mode-switcher" id="adminPanel" style="display: none;">
-    <button class="btn-mode active-mode" id="mode1" onclick="setModeHari('pra')">📅 Mode Kandang</button>
-    <button class="btn-mode" id="mode2" onclick="setModeHari('h')">🥩 Mode Hari-H (Sembelih)</button>
-  </div>
-
-  <!-- PENAMAAAN TAB BARU SESUAI ALUR KEINGINAN AMIZA -->
-  <div class="tabs">
-    <div class="tab active" id="tabMenu1" onclick="switchTab(1, this)">KANDANG</div>
-    <div class="tab" id="tabMenu2" onclick="switchTab(2, this)">SEMBELIH 1</div>
-    <div class="tab" id="tabMenu3" onclick="switchTab(3, this)">SEMBELIH 2</div>
-  </div>
-
-  <div class="content">
-    <div class="form-group">
-      <label>Nama Petugas (Inisial)</label>
-      <div style="display:flex; gap:10px;">
-        <input type="text" id="petugas" placeholder="Nama" required>
-        <input type="text" id="inisial" placeholder="Inisial" style="width:100px;" required>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Nomor ID Hewan</label>
-      <input list="listID" id="idHewan" oninput="getDetail()" placeholder="Ketik atau pilih ID..." required>
-      <datalist id="listID"></datalist>
-    </div>
-
-    <div id="infoBox" class="info-box">
-      <strong>Nomor ID Klop:</strong> <span id="txtIdTerpilih" style="color: #2e7d32; font-weight: bold;"></span><br>
-      <strong>Pequrban:</strong> <span id="txtNama"></span><br>
-      <strong>Jenis:</strong> <span id="txtJenis"></span>
-      <input type="hidden" id="kodeTipe">
-    </div>
-
-    <div class="form-group">
-      <label>Bidik Kamera ke Hewan Qurban</label>
-      <div class="camera-container">
-        <div class="camera-loading" id="camLoadText">⏳ Membuka Kamera...</div>
-        <video id="video" autoplay playsinline onplaying="document.getElementById('camLoadText').style.display='none'"></video>
-        <img id="preview" class="preview-img" alt="Hasil Foto">
-      </div>
-      <button class="btn btn-snap" id="btnSnap" onclick="ambilGambar()">📸 AMBIL FOTO</button>
-    </div>
-
-    <button class="btn" id="btnSubmit" onclick="uploadDataKeSheet()" disabled>🚀 UPLOAD DATA FOTO</button>
-    <div id="status"></div>
-
-    <div style="margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 15px; text-align: center;">
-      <label style="font-size: 11px; color: #888;">Kamera Cadangan (jika tidak muncul layar kamera):</label>
-      <input type="file" accept="image/*" capture="environment" onchange="prosesFotoDarurat(this)" style="margin-top: 5px; font-size: 12px; background: #f5f5f5; padding: 5px; border-radius: 5px; width:90%">
-    </div>
-  </div>
+  <video id="video" autoplay playsinline></video>
+  <button class="btn" onclick="takePhoto()">AMBIL FOTO</button>
+  <div id="status" style="margin-top:10px; font-weight:bold;"></div>
 </div>
 
 <script>
-  // KUNCI TAB: Hanya satu tab yang aktif
-  function switchTab(idx, el) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab'+idx).classList.add('active');
-    currentTab = idx;
-    updateDropdown();
-  }
+  const video = document.getElementById('video');
 
-  // Kamera Sederhana (Tanpa orientasi rumit)
-  async function aktifkanKameraBelakang() {
+  // FUNGSI KAMERA PALING STABIL (TANPA LOGIKA RIBET)
+  async function startCamera() {
     try {
-      if(streamObj) streamObj.getTracks().forEach(t => t.stop());
-      streamObj = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      document.getElementById('video').srcObject = streamObj;
-    } catch(e) {
-      console.log("Kamera gagal:", e);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: { exact: "environment" } } 
+      });
+      video.srcObject = stream;
+    } catch (err) {
+      // Jika kamera belakang exact gagal, coba kamera default
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      } catch (e) {
+        document.getElementById('status').innerText = "Kamera tidak bisa diakses!";
+      }
     }
   }
+
+  function takePhoto() {
+    // Fungsi snap sederhana
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const data = canvas.toDataURL('image/jpeg', 0.5);
+    document.getElementById('status').innerText = "Foto Berhasil Diambil.";
+    console.log("Data foto siap:", data.substring(0, 50));
+  }
+
+  window.onload = startCamera;
 </script>
 </body>
 </html>

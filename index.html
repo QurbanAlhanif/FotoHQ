@@ -24,11 +24,11 @@
       <p class="text-emerald-100 text-sm">Qurban Alhanif 1447H</p>
     </div>
 
-    <!-- TABS MENU -->
-    <div class="flex p-2 gap-2 bg-slate-50 border-b border-slate-200">
-      <button id="btnTab1" onclick="pindahTab(1)" class="flex-1 py-2 text-xs font-bold rounded-lg border tab-active transition-colors">KANDANG</button>
-      <button id="btnTab2" onclick="pindahTab(2)" class="flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">SEMBELIH 1</button>
-      <button id="btnTab3" onclick="pindahTab(3)" class="flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">SEMBELIH 2</button>
+    <!-- TABS MENU (Disembunyikan secara default, diatur oleh JS) -->
+    <div class="flex p-2 gap-2 bg-slate-50 border-b border-slate-200" id="tabMenuContainer">
+      <button id="btnTab1" onclick="pindahTab(1)" class="hidden flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">KANDANG</button>
+      <button id="btnTab2" onclick="pindahTab(2)" class="hidden flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">SEMBELIH 1</button>
+      <button id="btnTab3" onclick="pindahTab(3)" class="hidden flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">SEMBELIH 2</button>
     </div>
 
     <div class="p-4 space-y-4">
@@ -45,17 +45,22 @@
         </div>
       </div>
 
-      <!-- PILIHAN ID HEWAN -->
+      <!-- INPUT ID SMART & INFO BOX -->
       <div>
-        <label class="text-[10px] font-bold text-slate-700 uppercase">Pilih ID Qurban</label>
+        <label class="text-[10px] font-bold text-slate-700 uppercase">Pilih / Ketik ID Qurban</label>
         <div id="infoLoadingData" class="text-xs text-amber-600 mb-1 font-medium hidden"><i class="fas fa-spinner fa-spin"></i> Mengambil data ID...</div>
-        <select id="idHewan" class="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 bg-slate-50 font-bold">
-          <option value="">-- MENGAMBIL DATA --</option>
-        </select>
+        
+        <input type="text" id="idHewan" list="listID" maxlength="3" autocomplete="off" oninput="cekInfoID()" class="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 bg-slate-50 font-bold placeholder-slate-400" placeholder="Ketik 3 digit ID...">
+        <datalist id="listID"></datalist>
+
+        <!-- KOTAK INFO DATA (Muncul jika 3 digit diketik) -->
+        <div id="infoBox" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hidden">
+           <!-- Akan diisi oleh JavaScript otomatis -->
+        </div>
       </div>
 
       <!-- KAMERA UTAMA -->
-      <div id="video-container" class="shadow-inner">
+      <div id="video-container" class="shadow-inner mt-2">
         <div id="camLoadText">⏳ Menyalakan Kamera...</div>
         <video id="video" autoplay playsinline muted></video>
         <img id="preview" style="display: none;" alt="Hasil Foto">
@@ -85,7 +90,7 @@
     // =========================================================================
     // KONFIGURASI UTAMA: GANTI DENGAN URL WEB APPS AMIZA!
     // =========================================================================
-    const API_URL = "https://script.google.com/macros/s/AKfycbwu9x3PyUFmlK1sxHHS0b3SjoTLHJTK_a8g0WN-HVMlF6u0gbEiH8RpdbEq6pMqq9lR/exec"; 
+    const API_URL = "URL_WEB_APP_GAS_AMIZA_DISINI"; 
 
     let currentTab = 1;
     let streamObj = null;
@@ -93,48 +98,72 @@
     let dataDatabaseLokal = [];
 
     window.onload = () => {
+      setModeHari(); 
       aktifkanKameraBelakang();
-      updateDropdown();
     };
+
+    // --- LOGIKA URL (hari=h) ---
+    function setModeHari() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hari = urlParams.get('hari');
+      
+      if (hari === 'h') {
+        document.getElementById('btnTab2').classList.remove('hidden');
+        document.getElementById('btnTab3').classList.remove('hidden');
+        pindahTab(2); // Buka Sembelih 1 duluan
+      } else {
+        document.getElementById('btnTab1').classList.remove('hidden');
+        pindahTab(1); // Buka Kandang duluan
+      }
+    }
 
     // --- NAVIGASI TAB ---
     function pindahTab(tabNum) {
       currentTab = tabNum;
       for(let i=1; i<=3; i++) {
         const btn = document.getElementById('btnTab'+i);
-        if(i === tabNum) {
-          btn.classList.replace('tab-inactive', 'tab-active');
-        } else {
-          btn.classList.replace('tab-active', 'tab-inactive');
+        if (btn) {
+          if(i === tabNum) {
+            btn.classList.replace('tab-inactive', 'tab-active');
+          } else {
+            btn.classList.replace('tab-active', 'tab-inactive');
+          }
         }
       }
       resetBidikanKamera();
       updateDropdown();
     }
 
-    // --- MENGAMBIL DATA DROPDOWN DARI GOOGLE SHEET ---
+    // --- MENGAMBIL DATA DATALIST (ANTI DUPLIKAT TETAP JALAN) ---
     function updateDropdown() {
       document.getElementById('infoLoadingData').style.display = 'block';
-      const selectObj = document.getElementById('idHewan');
-      selectObj.innerHTML = '<option value="">-- MENGAMBIL DATA... --</option>';
+      const dl = document.getElementById('listID');
+      const inputObj = document.getElementById('idHewan');
+      const infoBox = document.getElementById('infoBox');
+      
+      dl.innerHTML = '';
+      inputObj.value = '';
+      infoBox.style.display = 'none';
       
       const oldScript = document.getElementById('jsonp-ids');
       if (oldScript) oldScript.remove();
 
       window.handleDropdownData = function(list) {
         document.getElementById('infoLoadingData').style.display = 'none';
-        dataDatabaseLokal = list;
-        selectObj.innerHTML = '<option value="">-- PILIH ID --</option>';
-        if(!list || list.length === 0) {
-          selectObj.innerHTML = '<option value="">-- SEMUA FOTO SUDAH LENGKAP --</option>';
-          return;
+        dataDatabaseLokal = list || [];
+        
+        if(dataDatabaseLokal.length === 0) {
+          inputObj.placeholder = "SEMUA FOTO SUDAH LENGKAP";
+          inputObj.disabled = true;
+        } else {
+          inputObj.placeholder = "Ketik 3 digit ID...";
+          inputObj.disabled = false;
+          dataDatabaseLokal.forEach(item => {
+            let opt = document.createElement('option');
+            opt.value = item.id;
+            dl.appendChild(opt);
+          });
         }
-        list.forEach(item => {
-          let opt = document.createElement('option');
-          opt.value = item.id;
-          opt.text = `ID ${item.id} - ${item.jenis} - ${item.nama}`;
-          selectObj.appendChild(opt);
-        });
       };
 
       const script = document.createElement('script');
@@ -143,7 +172,33 @@
       document.body.appendChild(script);
     }
 
-    // --- KAMERA UTAMA (STABIL ANTI-BLACKSCREEN) ---
+    // --- LOGIKA KETIK & MUNCULKAN INFO (SMART INPUT) ---
+    function cekInfoID() {
+      const inputVal = document.getElementById('idHewan').value.trim();
+      const infoBox = document.getElementById('infoBox');
+      
+      if (inputVal.length === 3) {
+         const found = dataDatabaseLokal.find(item => item.id.toString() === inputVal);
+         if (found) {
+            infoBox.innerHTML = `
+              <div class="font-bold text-blue-800 border-b border-blue-200 pb-1 mb-2 text-xs uppercase">DATA DITEMUKAN</div>
+              <div class="grid grid-cols-3 gap-1 text-xs">
+                <div class="text-slate-500 font-bold">NO ID</div><div class="col-span-2 font-black text-slate-800">: ${found.id}</div>
+                <div class="text-slate-500 font-bold">JENIS</div><div class="col-span-2 font-bold text-slate-700">: ${found.jenis}</div>
+                <div class="text-slate-500 font-bold">NAMA</div><div class="col-span-2 font-bold text-slate-700">: ${found.nama}</div>
+              </div>
+            `;
+            infoBox.style.display = 'block';
+         } else {
+            infoBox.innerHTML = `<div class="text-red-600 font-bold text-xs"><i class="fas fa-exclamation-triangle"></i> ID ${inputVal} tidak ada di antrean tab ini atau sudah difoto.</div>`;
+            infoBox.style.display = 'block';
+         }
+      } else {
+         infoBox.style.display = 'none';
+      }
+    }
+
+    // --- KAMERA UTAMA ---
     async function aktifkanKameraBelakang() {
       const video = document.getElementById('video');
       const camLoadText = document.getElementById('camLoadText');
@@ -182,14 +237,12 @@
       const btnSubmit = document.getElementById('btnSubmit');
 
       if (btnSnap.innerText.includes("AMBIL FOTO")) {
-        // Ambil resolusi proporsional asli dari sensor agar tidak gepeng
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Kompresi stabil di angka 0.5
         fotoBase64Data = canvas.toDataURL('image/jpeg', 0.5);
 
         preview.src = fotoBase64Data;
@@ -258,17 +311,17 @@
     function uploadDataKeSheet() {
       const petugas = document.getElementById('petugas').value.trim();
       const inisial = document.getElementById('inisial').value.trim();
-      const idHewan = document.getElementById('idHewan').value;
+      const idHewan = document.getElementById('idHewan').value.trim();
 
       if (!petugas || !inisial || !idHewan) {
-        alert("⚠️ Mohon lengkapi Nama Petugas, Inisial, dan Pilih ID Hewan!");
+        alert("⚠️ Mohon lengkapi Nama Petugas, Inisial, dan Ketik ID Hewan!");
         return;
       }
 
       // Validasi Anti-Duplikat
       const validID = dataDatabaseLokal.find(item => item.id.toString() === idHewan);
       if (!validID) {
-        alert("⚠️ ID " + idHewan + " tidak ditemukan di daftar saat ini.");
+        alert("⚠️ ID " + idHewan + " tidak valid. Pastikan Anda mengetik ID yang benar atau ID tersebut sudah difoto sebelumnya.");
         return;
       }
 
@@ -286,7 +339,6 @@
       statusDiv.className = 'text-center text-sm font-bold mt-2 text-blue-600';
       statusDiv.innerText = "Mengirim data ke server, mohon tunggu...";
 
-      // Ekstrak base64 murni tanpa awalan data:image/jpeg;base64,
       const base64DataMurni = fotoBase64Data.split(',')[1];
 
       const payload = {
@@ -311,10 +363,11 @@
         statusDiv.innerText = "✅ " + (result.status || "Upload Berhasil!");
         alert("Upload Berhasil!");
         
-        // Reset form setelah upload sukses
         resetBidikanKamera();
         aktifkanKameraBelakang();
-        updateDropdown();
+        updateDropdown(); // Memanggil ulang data dari server (ID yang sudah diupload otomatis hilang)
+        document.getElementById('idHewan').value = ''; // Kosongkan form input
+        document.getElementById('infoBox').style.display = 'none'; // Sembunyikan kotak info
         btnSubmit.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> UPLOAD KE SERVER';
       })
       .catch(error => {

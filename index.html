@@ -201,53 +201,47 @@
     const video = document.getElementById('video');
     const camLoadText = document.getElementById('camLoadText');
     
+    // Matikan semua stream yang aktif di seluruh halaman
+    const devices = await navigator.mediaDevices.enumerateDevices();
     if (streamObj) {
-      streamObj.getTracks().forEach(track => track.stop());
-      streamObj = null;
+        streamObj.getTracks().forEach(track => track.stop());
     }
     
     if (camLoadText) {
       camLoadText.style.display = 'block';
-      camLoadText.innerText = "⏳ Membuka Kamera Belakang...";
+      camLoadText.innerText = "⏳ Inisialisasi Kamera...";
     }
     
     video.style.display = 'block';
     document.getElementById('preview').style.display = 'none';
 
-    video.setAttribute('autoplay', '');
-    video.setAttribute('muted', '');
-    video.setAttribute('playsinline', '');
-
-    // KUNCI DURASI LOADING: Teks hanya akan dihilangkan JIKA video sudah memutar gambar hidup
-    video.onplaying = function() {
-      if (camLoadText) camLoadText.style.display = 'none';
-    };
-
     try {
-      // Prioritas 1: Paksa wajib kamera belakang
+      // Paksa pakai kamera belakang tanpa constraint lebar/tinggi yang ribet
       const constraints = {
-        video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: { facingMode: { exact: "environment" } }
       };
+
       streamObj = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = streamObj;
-      video.play().catch(e => console.log("Play tertahan", e));
+      
+      // Tunggu stream siap
+      await video.play();
+      camLoadText.style.display = 'none';
 
     } catch (err) {
-      console.log("Kamera exact environment gagal, mencoba ideal...", err);
+      console.log("Gagal environment, mencoba kamera default:", err);
       try {
-        // Prioritas 2: Jika exact gagal (biasanya di HP Android tertentu), tetap paksa environment (belakang)
-        const fallbackConstraints = {
-          video: { facingMode: "environment" }
-        };
-        streamObj = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        // Fallback: Kamera mana saja
+        const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamObj = fallback;
         video.srcObject = streamObj;
-        video.play().catch(e => console.log("Play tertahan", e));
+        await video.play();
+        camLoadText.style.display = 'none';
       } catch (e) {
         if (camLoadText) {
-          camLoadText.style.display = 'block';
-          camLoadText.innerText = "❌ Akses Kamera Ditolak.";
+           camLoadText.style.display = 'block';
+           camLoadText.innerText = "❌ Kamera Tidak Ditemukan / Izin Diblokir.";
         }
-        alert("Gagal membuka kamera! Pastikan Anda telah memberikan izin akses kamera ke situs ini.");
       }
     }
   }
@@ -371,7 +365,8 @@
   }
 
   function prosesFotoDarurat(input) {
-    if (input.files && input.files[0]) {
+      document.getElementById('camLoadText').style.display = 'none';     
+      if (input.files && input.files[0]) {
       const reader = new FileReader();
       reader.readAsDataURL(input.files[0]);
       reader.onload = function(e) {

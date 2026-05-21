@@ -327,6 +327,13 @@
       // Tambahkan Watermark
       ctx.font = "bold 30px Arial";
       ctx.fillStyle = "white";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Bayangan hitam agar teks terbaca
+      ctx.shadowBlur = 4;
+      ctx.lineWidth = 2;
+      ctx.strokeText("Al-Hanif 1447H", 20, 1240); // Garis tepi teks
+      ctx.fillStyle = "white";
+      ctx.fillText("Al-Hanif 1447H", 20, 1240); // Teks utama
+      ctx.shadowBlur = 0; // Reset agar tidak mempengaruhi elemen lain
       ctx.fillText("Al-Hanif 1447H", 20, 1250);
       
       fotoBase64Data = canvas.toDataURL('image/jpeg', 0.60); //kompresi 0.6
@@ -387,6 +394,13 @@
           // Watermark
           ctx.font = "bold 30px Arial";
           ctx.fillStyle = "white";
+          ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Bayangan hitam agar teks terbaca
+          ctx.shadowBlur = 4;
+          ctx.lineWidth = 2;
+          ctx.strokeText("Al-Hanif 1447H", 20, 1240); // Garis tepi teks
+          ctx.fillStyle = "white";
+          ctx.fillText("Al-Hanif 1447H", 20, 1240); // Teks utama
+          ctx.shadowBlur = 0; // Reset agar tidak mempengaruhi elemen lain
           ctx.fillText("Al-Hanif 1447H", 20, 1250);
 
           fotoBase64Data = canvas.toDataURL('image/jpeg', 0.6); // Kompresi sama 0.6

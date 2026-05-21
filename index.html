@@ -318,25 +318,27 @@
     const btnSubmit = document.getElementById('btnSubmit');
 
     if (btnSnap.innerText.includes("AMBIL FOTO")) {
+      // --- LOGIKA CANVAS DINAMIS (Anti-Jepit, Anti-Tumpuk) ---
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 720;
-      canvas.height = video.videoHeight || 1280;
+      // Gunakan dimensi asli video agar tidak memaksa portrait jika HP landscape
+      canvas.width = video.videoWidth; 
+      canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
+      
+      // Gambar sesuai orientasi asli (tidak dipaksa)
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Tambahkan Watermark
-      ctx.font = "bold 30px Arial";
+      // --- WATERMARK POSISI SUDUT KANAN BAWAH (Agar tidak tertutup watermark HP) ---
+      const fontSize = Math.floor(canvas.width / 20); // Skala otomatis sesuai resolusi
+      ctx.font = `bold ${fontSize}px Arial`;
       ctx.fillStyle = "white";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Bayangan hitam agar teks terbaca
-      ctx.shadowBlur = 4;
-      ctx.lineWidth = 2;
-      ctx.strokeText("Al-Hanif 1447H", 20, 1240); // Garis tepi teks
-      ctx.fillStyle = "white";
-      ctx.fillText("Al-Hanif 1447H", 20, 1240); // Teks utama
-      ctx.shadowBlur = 0; // Reset agar tidak mempengaruhi elemen lain
-      ctx.fillText("Al-Hanif 1447H", 20, 1250);
+      ctx.shadowColor = "black";
+      ctx.shadowBlur = 10;
+      ctx.textAlign = "right"; // Rata kanan
+      ctx.fillText("Al-Hanif 1447H", canvas.width - 20, canvas.height - 20); 
       
-      fotoBase64Data = canvas.toDataURL('image/jpeg', 0.60); //kompresi 0.6
+      // Kompresi ke 0.5
+      fotoBase64Data = canvas.toDataURL('image/jpeg', 0.5);
 
       preview.src = fotoBase64Data;
       preview.style.display = 'block';
@@ -383,27 +385,27 @@
       reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
+          // --- LOGIKA CANVAS DINAMIS (Anti-Jepit, Anti-Tumpuk) ---
           const canvas = document.createElement('canvas');
-          canvas.width = 720;
-          canvas.height = 1280;
+          // Gunakan dimensi asli video agar tidak memaksa portrait jika HP landscape
+          canvas.width = video.videoWidth; 
+          canvas.height = video.videoHeight;
           const ctx = canvas.getContext('2d');
           
           // Gambar dengan ukuran fix
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           
-          // Watermark
-          ctx.font = "bold 30px Arial";
+          // --- WATERMARK POSISI SUDUT KANAN BAWAH (Agar tidak tertutup watermark HP) ---
+          const fontSize = Math.floor(canvas.width / 20); // Skala otomatis sesuai resolusi
+          ctx.font = `bold ${fontSize}px Arial`;
           ctx.fillStyle = "white";
-          ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Bayangan hitam agar teks terbaca
-          ctx.shadowBlur = 4;
-          ctx.lineWidth = 2;
-          ctx.strokeText("Al-Hanif 1447H", 20, 1240); // Garis tepi teks
-          ctx.fillStyle = "white";
-          ctx.fillText("Al-Hanif 1447H", 20, 1240); // Teks utama
-          ctx.shadowBlur = 0; // Reset agar tidak mempengaruhi elemen lain
-          ctx.fillText("Al-Hanif 1447H", 20, 1250);
-
-          fotoBase64Data = canvas.toDataURL('image/jpeg', 0.6); // Kompresi sama 0.6
+          ctx.shadowColor = "black";
+          ctx.shadowBlur = 10;
+          ctx.textAlign = "right"; // Rata kanan
+          ctx.fillText("Al-Hanif 1447H", canvas.width - 20, canvas.height - 20); 
+          
+          // Kompresi ke 0.5
+          fotoBase64Data = canvas.toDataURL('image/jpeg', 0.5);
           
           document.getElementById('preview').src = fotoBase64Data;
           document.getElementById('preview').style.display = 'block';

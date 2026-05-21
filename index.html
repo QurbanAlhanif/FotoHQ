@@ -276,7 +276,7 @@
       }
     }
 
-   // --- PROSES BIDIK GAMBAR (AUTO-CROP PROPORSIONAL) ---
+   // --- PROSES BIDIK GAMBAR (AUTO-CROP & AUTO-ORIENTATION) ---
     function ambilGambar() {
       const video = document.getElementById('video');
       const preview = document.getElementById('preview');
@@ -287,14 +287,24 @@
         const canvas = document.createElement('canvas');
         
         // ==========================================================
-        // DIMENSI FIX PROPORSIONAL (STANDAR FOTO 3:4)
+        // DETEKSI KEMIRINGAN HP (LANDSCAPE vs PORTRAIT)
         // ==========================================================
-        canvas.width = 1080;
-        canvas.height = 1440; // 1440 adalah pasangan ideal untuk 1080 (tidak jangkung)
+        const isLandscape = video.videoWidth > video.videoHeight;
+        
+        if (isLandscape) {
+          // Jika miring, jadikan format memanjang ke samping (4:3)
+          canvas.width = 1440;
+          canvas.height = 1080;
+        } else {
+          // Jika tegak, jadikan format berdiri (3:4)
+          canvas.width = 1080;
+          canvas.height = 1440;
+        }
+
         const ctx = canvas.getContext('2d');
 
         // ==========================================================
-        // LOGIKA AUTO-CROP (POTONG TENGAH) AGAR TIDAK GEPENG
+        // LOGIKA AUTO-CROP PROPORSIONAL 
         // ==========================================================
         const videoRatio = video.videoWidth / video.videoHeight;
         const targetRatio = canvas.width / canvas.height;
@@ -304,20 +314,20 @@
         let cropHeight = video.videoHeight;
 
         if (videoRatio > targetRatio) {
-          // Video terlalu lebar, potong sisi kiri & kanan
+          // Video lebih memanjang dari target, potong kiri & kanan
           cropWidth = video.videoHeight * targetRatio;
           cropX = (video.videoWidth - cropWidth) / 2;
         } else {
-          // Video terlalu tinggi (Ini masalah jangkungnya!), potong sisi atas & bawah
+          // Video lebih tinggi dari target, potong atas & bawah
           cropHeight = video.videoWidth / targetRatio;
           cropY = (video.videoHeight - cropHeight) / 2;
         }
 
-        // Gambar hanya area yang sudah dipotong ke dalam canvas
+        // Cetak gambar sesuai orientasi aslinya tanpa distorsi
         ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
         // ==========================================================
         
-        // Kompresi di 0.85 untuk menjaga size tetap kecil tapi jernih
+        // Kompresi stabil di 0.85
         fotoBase64Data = canvas.toDataURL('image/jpeg', 0.85); 
 
         preview.src = fotoBase64Data;
@@ -388,10 +398,25 @@
       const inisial = document.getElementById('inisial').value.trim();
       const idHewan = document.getElementById('idHewan').value.trim();
 
-      if (!petugas || !inisial || !idHewan) {
-        alert("⚠️ Mohon lengkapi Nama Petugas, Inisial, dan Ketik ID Hewan!");
+      // ==========================================================
+      // VALIDASI KOTAK KOSONG (NOTIFIKASI SPESIFIK)
+      // ==========================================================
+      if (!petugas) {
+        alert("⚠️ NAMA PETUGAS belum diisi! Silakan isi terlebih dahulu.");
+        document.getElementById('petugas').focus();
         return;
       }
+      if (!inisial) {
+        alert("⚠️ INISIAL PETUGAS belum diisi! Silakan isi terlebih dahulu.");
+        document.getElementById('inisial').focus();
+        return;
+      }
+      if (!idHewan) {
+        alert("⚠️ NOMOR ID HEWAN belum diketik! Silakan ketik ID-nya.");
+        document.getElementById('idHewan').focus();
+        return;
+      }
+      // ==========================================================
 
 
       // Validasi Anti-Duplikat (Smart Match)

@@ -248,13 +248,25 @@
       document.getElementById('preview').style.display = 'none';
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
+        // PERUBAHAN DI SINI: Minta browser menarik resolusi paling maksimal (Ideal 4K)
+        const constraints = { 
+          video: { 
+            facingMode: { exact: "environment" },
+            width: { ideal: 3840 }, 
+            height: { ideal: 2160 } 
+          } 
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         streamObj = stream;
         video.srcObject = stream;
         video.onplaying = () => { camLoadText.style.display = 'none'; };
       } catch (err) {
         try {
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          // Fallback juga dipaksa resolusi tinggi
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: { ideal: 3840 }, height: { ideal: 2160 } } 
+          });
           streamObj = fallbackStream;
           video.srcObject = fallbackStream;
           video.onplaying = () => { camLoadText.style.display = 'none'; };
@@ -277,8 +289,9 @@
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        fotoBase64Data = canvas.toDataURL('image/jpeg', 0.5);
+        // Kualitas 0.95 akan membuat ukuran file bengkak dan jernih setara kamera asli
+        fotoBase64Data = canvas.toDataURL('image/jpeg', 0.95);
+  
 
         preview.src = fotoBase64Data;
         preview.style.display = 'block';

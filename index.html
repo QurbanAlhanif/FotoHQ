@@ -335,7 +335,7 @@
       ctx.shadowColor = "black";
       ctx.shadowBlur = 10;
       ctx.textAlign = "right"; // Rata kanan
-      ctx.fillText("Al-Hanif 1447H", canvas.width - 20, canvas.height - 20); 
+      ctx.fillText("Qurban Al-Hanif 1447H", canvas.width - 20, canvas.height - 20); 
       
       // Kompresi ke 0.5
       fotoBase64Data = canvas.toDataURL('image/jpeg', 0.5);
@@ -385,26 +385,39 @@
       reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-          // --- LOGIKA CANVAS DINAMIS (Anti-Jepit, Anti-Tumpuk) ---
           const canvas = document.createElement('canvas');
-          // Gunakan dimensi asli video agar tidak memaksa portrait jika HP landscape
-          canvas.width = video.videoWidth; 
-          canvas.height = video.videoHeight;
+          
+          // DETEKSI ORIENTASI: Jika lebar > tinggi, maka ini landscape
+          const isLandscape = img.width > img.height;
+          
+          if (isLandscape) {
+            // Jika landscape, putar canvas agar hasilnya portrait (tetap tegak)
+            canvas.width = 1280;
+            canvas.height = 720;
+          } else {
+            // Jika portrait, gunakan dimensi standar
+            canvas.width = 720;
+            canvas.height = 1280;
+          }
+          
           const ctx = canvas.getContext('2d');
           
-          // Gambar dengan ukuran fix
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          // Jika landscape, putar gambar 90 derajat agar tidak kurus
+          if (isLandscape) {
+            ctx.rotate(90 * Math.PI / 180);
+            ctx.drawImage(img, 0, -canvas.width, canvas.height, canvas.width);
+          } else {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          }
           
-          // --- WATERMARK POSISI SUDUT KANAN BAWAH (Agar tidak tertutup watermark HP) ---
-          const fontSize = Math.floor(canvas.width / 20); // Skala otomatis sesuai resolusi
-          ctx.font = `bold ${fontSize}px Arial`;
+          // Watermark tetap (gunakan koordinat relatif agar tidak hilang)
+          ctx.font = "bold 40px Arial";
           ctx.fillStyle = "white";
           ctx.shadowColor = "black";
-          ctx.shadowBlur = 10;
-          ctx.textAlign = "right"; // Rata kanan
-          ctx.fillText("Al-Hanif 1447H", canvas.width - 20, canvas.height - 20); 
-          
-          // Kompresi ke 0.5
+          ctx.shadowBlur = 7;
+          ctx.textAlign = "right";
+          ctx.fillText("Al-Hanif 1447H", canvas.width - 30, canvas.height - 30);
+
           fotoBase64Data = canvas.toDataURL('image/jpeg', 0.5);
           
           document.getElementById('preview').src = fotoBase64Data;
@@ -412,7 +425,7 @@
           document.getElementById('video').style.display = 'none';
           document.getElementById('btnSubmit').disabled = false;
           document.getElementById('btnSnap').innerHTML = "🔄 ULANG FOTO";
-          document.getElementById('btnSnap').style.background = "#e53935";
+          document.getElementById('btnSnap').style.background = "#e53935';
         };
         img.src = e.target.result;
       };

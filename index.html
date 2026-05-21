@@ -276,7 +276,7 @@
       }
     }
 
-    // --- PROSES BIDIK GAMBAR ---
+   // --- PROSES BIDIK GAMBAR (AUTO-CROP PROPORSIONAL) ---
     function ambilGambar() {
       const video = document.getElementById('video');
       const preview = document.getElementById('preview');
@@ -285,23 +285,40 @@
 
       if (btnSnap.innerText.includes("AMBIL FOTO")) {
         const canvas = document.createElement('canvas');
-        // ==========================================================
-        // AREA PENGATURAN DIMENSI FLEKSIBEL OM ZA
-        // ==========================================================
-        const targetLebar = 1080; // Ubah angka ini (contoh: 720, 1080, atau 1280)
         
-        // Menghitung rasio asli kamera agar gambar TIDAK GEPENG
-        const rasioAsli = video.videoHeight / video.videoWidth; 
-        
-        canvas.width = targetLebar;
-        canvas.height = targetLebar * rasioAsli; // Tinggi akan otomatis proporsional
         // ==========================================================
-       
+        // DIMENSI FIX PROPORSIONAL (STANDAR FOTO 3:4)
+        // ==========================================================
+        canvas.width = 1080;
+        canvas.height = 1440; // 1440 adalah pasangan ideal untuk 1080 (tidak jangkung)
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Kualitas 0.95 akan membuat ukuran file bengkak dan jernih setara kamera asli
-        fotoBase64Data = canvas.toDataURL('image/jpeg', 0.7);
-  
+
+        // ==========================================================
+        // LOGIKA AUTO-CROP (POTONG TENGAH) AGAR TIDAK GEPENG
+        // ==========================================================
+        const videoRatio = video.videoWidth / video.videoHeight;
+        const targetRatio = canvas.width / canvas.height;
+
+        let cropX = 0, cropY = 0;
+        let cropWidth = video.videoWidth;
+        let cropHeight = video.videoHeight;
+
+        if (videoRatio > targetRatio) {
+          // Video terlalu lebar, potong sisi kiri & kanan
+          cropWidth = video.videoHeight * targetRatio;
+          cropX = (video.videoWidth - cropWidth) / 2;
+        } else {
+          // Video terlalu tinggi (Ini masalah jangkungnya!), potong sisi atas & bawah
+          cropHeight = video.videoWidth / targetRatio;
+          cropY = (video.videoHeight - cropHeight) / 2;
+        }
+
+        // Gambar hanya area yang sudah dipotong ke dalam canvas
+        ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+        // ==========================================================
+        
+        // Kompresi di 0.85 untuk menjaga size tetap kecil tapi jernih
+        fotoBase64Data = canvas.toDataURL('image/jpeg', 0.85); 
 
         preview.src = fotoBase64Data;
         preview.style.display = 'block';

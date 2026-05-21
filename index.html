@@ -105,12 +105,14 @@
       aktifkanKameraBelakang();
     };
 
-    // --- LOGIKA URL (hari=h) ---
+    // --- LOGIKA URL (hari=h atau page=kirim) ---
     function setModeHari() {
       const urlParams = new URLSearchParams(window.location.search);
       const hari = urlParams.get('hari');
+      const page = urlParams.get('page');
       
-      if if (page === 'kirim') {
+      // Sudah diperbaiki: 'if' hanya ditulis satu kali
+      if (page === 'kirim') {
         // Mode Khusus Pengiriman
         document.getElementById('btnTab4').classList.remove('hidden');
         pindahTab(4);

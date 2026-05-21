@@ -29,6 +29,7 @@
       <button id="btnTab1" onclick="pindahTab(1)" class="hidden flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">KANDANG</button>
       <button id="btnTab2" onclick="pindahTab(2)" class="hidden flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">SEMBELIH 1</button>
       <button id="btnTab3" onclick="pindahTab(3)" class="hidden flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">SEMBELIH 2</button>
+      <button id="btnTab4" onclick="pindahTab(4)" class="hidden flex-1 py-2 text-xs font-bold rounded-lg border tab-inactive transition-colors">PENGIRIMAN</button>
     </div>
 
     <div class="p-4 space-y-4">
@@ -109,11 +110,17 @@
       const urlParams = new URLSearchParams(window.location.search);
       const hari = urlParams.get('hari');
       
-      if (hari === 'h') {
+      if if (page === 'kirim') {
+        // Mode Khusus Pengiriman
+        document.getElementById('btnTab4').classList.remove('hidden');
+        pindahTab(4);
+      } else if (hari === 'h') {
+        // Mode Hari H
         document.getElementById('btnTab2').classList.remove('hidden');
         document.getElementById('btnTab3').classList.remove('hidden');
         pindahTab(2); // Buka Sembelih 1 duluan
       } else {
+        // Mode Standar
         document.getElementById('btnTab1').classList.remove('hidden');
         pindahTab(1); // Buka Kandang duluan
       }
@@ -122,7 +129,7 @@
     // --- NAVIGASI TAB ---
     function pindahTab(tabNum) {
       currentTab = tabNum;
-      for(let i=1; i<=3; i++) {
+      for(let i=1; i<=4; i++) { // Ubah dari i<=3 menjadi i<=4
         const btn = document.getElementById('btnTab'+i);
         if (btn) {
           if(i === tabNum) {

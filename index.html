@@ -188,39 +188,70 @@
     aktifkanKameraBelakang();
   }
 
+  // =========================================================================
+  // FUNGSI KAMERA ANTI-LAYAR HITAM (VERSI INJEKSI PAKSA)
+  // =========================================================================
   async function aktifkanKameraBelakang() {
     const video = document.getElementById('video');
     const camLoadText = document.getElementById('camLoadText');
     
+    // 1. Matikan total arus kamera lama jika menggantung
     if (streamObj) {
       streamObj.getTracks().forEach(track => track.stop());
+      streamObj = null;
     }
     
-    if (camLoadText) camLoadText.style.display = 'block';
+    if (camLoadText) {
+      camLoadText.style.display = 'block';
+      camLoadText.innerText = "⏳ Membuka Kamera...";
+    }
+    
     video.style.display = 'block';
     document.getElementById('preview').style.display = 'none';
 
+    // 2. Suntik paksa atribut wajib ke elemen HTML dari dalam JavaScript
+    // Ini adalah kunci untuk menembus blokir layar hitam di iPhone dan Chrome Android
+    video.setAttribute('autoplay', '');
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
+
     try {
+      // 3. Panggil kamera (Hindari perintah 'exact' karena sering error di HP tertentu)
       const constraints = {
-        video: {
-          facingMode: { exact: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+        video: { facingMode: "environment" } 
       };
+
       streamObj = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = streamObj;
-    } catch (err) {
-      console.log("Kamera belakang exact environment bermasalah, mencopot batasan exact...", err);
-      try {
-        const fallback = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: "environment" } 
+
+      // 4. JANGAN langsung play. Tunggu sensor kamera HP siap memuat resolusi
+      video.onloadedmetadata = function() {
+        video.play().then(() => {
+          if (camLoadText) camLoadText.style.display = 'none'; // Sembunyikan teks loading jika sukses
+        }).catch(err => {
+          console.log("Auto-play ditahan browser:", err);
         });
+      };
+
+    } catch (err) {
+      console.log("Kamera belakang gagal, mencoba kamera dasar...", err);
+      // Fallback: Jika kamera belakang khusus gagal, ambil kamera mana saja yang ada
+      try {
+        const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
         streamObj = fallback;
         video.srcObject = streamObj;
+        
+        video.onloadedmetadata = function() {
+          video.play().then(() => {
+            if (camLoadText) camLoadText.style.display = 'none';
+          });
+        };
       } catch (e) {
-        if (camLoadText) camLoadText.style.display = 'none';
-        console.log("Gagal total inisialisasi hardware kamera.", e);
+        if (camLoadText) {
+          camLoadText.style.display = 'block';
+          camLoadText.innerText = "❌ Akses Ditolak.";
+        }
+        alert("Gagal membuka kamera!\n\nPastikan Anda telah mengizinkan akses kamera. Coba klik ikon gembok di dekat alamat web browser, lalu pilih 'Izinkan' untuk Kamera.");
       }
     }
   }

@@ -295,48 +295,17 @@
       if (btnSnap.innerText.includes("AMBIL FOTO")) {
         const canvas = document.createElement('canvas');
         
-        // ==========================================================
-        // DETEKSI KEMIRINGAN HP (LANDSCAPE vs PORTRAIT)
-        // ==========================================================
-        const isLandscape = video.videoWidth > video.videoHeight;
-        
-        if (isLandscape) {
-          // Jika miring, jadikan format memanjang ke samping (4:3)
-          canvas.width = 1440;
-          canvas.height = 1080;
-        } else {
-          // Jika tegak, jadikan format berdiri (3:4)
-          canvas.width = 1080;
-          canvas.height = 1440;
-        }
+        // 1. SET CANVAS SESUAI ORIENTASI VIDEO ASLI
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
         const ctx = canvas.getContext('2d');
 
-        // ==========================================================
-        // LOGIKA AUTO-CROP PROPORSIONAL 
-        // ==========================================================
-        const videoRatio = video.videoWidth / video.videoHeight;
-        const targetRatio = canvas.width / canvas.height;
-
-        let cropX = 0, cropY = 0;
-        let cropWidth = video.videoWidth;
-        let cropHeight = video.videoHeight;
-
-        if (videoRatio > targetRatio) {
-          // Video lebih memanjang dari target, potong kiri & kanan
-          cropWidth = video.videoHeight * targetRatio;
-          cropX = (video.videoWidth - cropWidth) / 2;
-        } else {
-          // Video lebih tinggi dari target, potong atas & bawah
-          cropHeight = video.videoWidth / targetRatio;
-          cropY = (video.videoHeight - cropHeight) / 2;
-        }
-
-        // Cetak gambar sesuai orientasi aslinya tanpa distorsi
-        ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
-        // ==========================================================
+        // 2. DRAW VIDEO LANGSUNG KE CANVAS TANPA CROP PAKSAAN
+        // Ini memastikan orientasi yang dilihat di layar adalah yang disimpan
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Kompresi stabil di 0.85
+        // 3. Kompresi tetap 0.85
         fotoBase64Data = canvas.toDataURL('image/jpeg', 0.85); 
 
         preview.src = fotoBase64Data;
@@ -347,7 +316,6 @@
 
         btnSnap.innerHTML = '<i class="fas fa-undo"></i> ULANG FOTO';
         btnSnap.classList.replace('bg-slate-800', 'bg-red-600');
-        btnSnap.classList.replace('hover:bg-slate-700', 'hover:bg-red-700');
         btnSubmit.disabled = false;
       } else {
         resetBidikanKamera();

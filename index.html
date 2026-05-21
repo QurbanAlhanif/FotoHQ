@@ -164,12 +164,46 @@
     updateDropdown();
   }
 
-  function aktifkanKameraBelakang() {
-    if (streamObj) { streamObj.getTracks().forEach(track => track.stop()); }
+  let streamObj = null; // Pastikan variabel ini ada di lingkup global
+
+  async function aktifkanKameraBelakang() {
     const video = document.getElementById('video');
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: 1280, height: 720 }, audio: false })
-      .then(stream => { streamObj = stream; video.srcObject = stream; })
-      .catch(err => { console.log("Kamera terblokir, menunggu input darurat."); });
+    const camLoadText = document.getElementById('camLoadText');
+    
+    // 1. Bersihkan semua track yang mungkin menggantung
+    if (streamObj) {
+      streamObj.getTracks().forEach(track => track.stop());
+    }
+    
+    // 2. Tampilkan teks loading agar user tidak bingung
+    camLoadText.style.display = 'block';
+    video.style.display = 'block';
+    document.getElementById('preview').style.display = 'none';
+
+    try {
+      // 3. Konfigurasi kamera belakang (facingMode: environment)
+      const constraints = {
+        video: {
+          facingMode: { exact: "environment" }, // Paksa pakai kamera belakang
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      // 4. Coba ambil stream
+      streamObj = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = streamObj;
+    } catch (err) {
+      console.log("Kamera belakang tidak ditemukan, mencoba mode umum...", err);
+      // Fallback jika mode 'environment' tidak didukung (beberapa HP butuh mode simple)
+      try {
+        const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamObj = fallback;
+        video.srcObject = streamObj;
+      } catch (e) {
+        alert("Gagal membuka kamera: " + e.message);
+      }
+    }
   }
 
   // Wadah global untuk menyimpan seluruh database ID, Nama, dan Jenis secara lokal di HP
@@ -287,10 +321,25 @@ function ambilGambar() {
     }
   }
 
-  function resetBidikanKamera() {
-    document.getElementById('preview').style.display = 'none';
-    document.getElementById('video').style.display = 'block';
+ function resetBidikanKamera() {
+    const video = document.getElementById('video');
+    const preview = document.getElementById('preview');
+    
+    // 1. Matikan aliran stream kamera lama agar tidak menggantung (Zombie Stream)
+    if (streamObj) {
+      streamObj.getTracks().forEach(track => track.stop());
+      streamObj = null;
+    }
+    
+    // 2. Bersihkan elemen video dan atur visibilitas kotak layar
+    video.srcObject = null;
+    video.style.display = 'block';
+    preview.style.display = 'none';
+    
+    // 3. Kosongkan data memori foto lama
     fotoBase64Data = null;
+    
+    // 4. Kembalikan tombol AMBIL FOTO ke status awal (Warna Biru)
     document.getElementById('btnSnap').innerHTML = "📸 AMBIL FOTO";
     document.getElementById('btnSnap').style.background = "#1565c0";
     document.getElementById('btnSubmit').disabled = true;

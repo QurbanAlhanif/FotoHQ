@@ -290,7 +290,7 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         // Kualitas 0.95 akan membuat ukuran file bengkak dan jernih setara kamera asli
-        fotoBase64Data = canvas.toDataURL('image/jpeg', 0.95);
+        fotoBase64Data = canvas.toDataURL('image/jpeg', 0.7);
   
 
         preview.src = fotoBase64Data;

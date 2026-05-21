@@ -285,8 +285,18 @@
 
       if (btnSnap.innerText.includes("AMBIL FOTO")) {
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // ==========================================================
+        // AREA PENGATURAN DIMENSI FLEKSIBEL OM ZA
+        // ==========================================================
+        const targetLebar = 1080; // Ubah angka ini (contoh: 720, 1080, atau 1280)
+        
+        // Menghitung rasio asli kamera agar gambar TIDAK GEPENG
+        const rasioAsli = video.videoHeight / video.videoWidth; 
+        
+        canvas.width = targetLebar;
+        canvas.height = targetLebar * rasioAsli; // Tinggi akan otomatis proporsional
+        // ==========================================================
+       
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         // Kualitas 0.95 akan membuat ukuran file bengkak dan jernih setara kamera asli

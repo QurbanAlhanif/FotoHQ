@@ -241,8 +241,7 @@
       }
     }
 
-    // --- KAMERA UTAMA ---
-    async function aktifkanKameraBelakang() {
+async function aktifkanKameraBelakang() {
       const video = document.getElementById('video');
       const camLoadText = document.getElementById('camLoadText');
       
@@ -251,18 +250,15 @@
       }
       
       camLoadText.style.display = 'block';
-      camLoadText.innerText = '⏳ Menyalakan Kamera...';
+      camLoadText.innerText = '⏳ Membuka Kamera...';
       video.style.display = 'block';
       document.getElementById('preview').style.display = 'none';
 
       try {
-        // PERUBAHAN DI SINI: Minta browser menarik resolusi paling maksimal (Ideal 4K)
+        // Coba mode "environment" (kamera belakang) TANPA resolusi paksaan
+        // Resolusi akan mengikuti bawaan HP agar tidak crash
         const constraints = { 
-          video: { 
-            facingMode: { exact: "environment" },
-            width: { ideal: 3840 }, 
-            height: { ideal: 2160 } 
-          } 
+          video: { facingMode: { exact: "environment" } } 
         };
         
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -270,11 +266,10 @@
         video.srcObject = stream;
         video.onplaying = () => { camLoadText.style.display = 'none'; };
       } catch (err) {
+        console.warn("Kamera belakang gagal, mencoba mode otomatis...", err);
         try {
-          // Fallback juga dipaksa resolusi tinggi
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: { ideal: 3840 }, height: { ideal: 2160 } } 
-          });
+          // Fallback: Biarkan browser memilih kamera terbaik (biasanya belakang)
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
           streamObj = fallbackStream;
           video.srcObject = fallbackStream;
           video.onplaying = () => { camLoadText.style.display = 'none'; };

@@ -258,7 +258,7 @@ async function aktifkanKameraBelakang() {
         // Coba mode "environment" (kamera belakang) TANPA resolusi paksaan
         // Resolusi akan mengikuti bawaan HP agar tidak crash
         const constraints = { 
-          video: { facingMode: { exact: "environment" } } 
+          video: { facingMode: { ideal: "environment" } } 
         };
         
         const stream = await navigator.mediaDevices.getUserMedia(constraints);

@@ -293,17 +293,20 @@ async function aktifkanKameraBelakang() {
       if (btnSnap.innerText.includes("AMBIL FOTO")) {
         const canvas = document.createElement('canvas');
         
-        // 1. SET CANVAS SESUAI ORIENTASI VIDEO ASLI
+        // 1. SET CANVAS SESUAI DIMENSI VIDEO
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
         const ctx = canvas.getContext('2d');
 
-        // 2. DRAW VIDEO LANGSUNG KE CANVAS TANPA CROP PAKSAAN
-        // Ini memastikan orientasi yang dilihat di layar adalah yang disimpan
+        // 2. TERAPKAN FILTER & GAMBAR (Hanya Sekali!)
+        ctx.filter = 'brightness(1.2) contrast(1.1)';
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // 3. Kompresi tetap 0.85
+        // Reset filter
+        ctx.filter = 'none';
+        
+        // 3. Kompresi
         fotoBase64Data = canvas.toDataURL('image/jpeg', 0.85); 
 
         preview.src = fotoBase64Data;

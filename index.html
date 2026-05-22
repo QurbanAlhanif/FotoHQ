@@ -242,42 +242,46 @@
     }
 
 async function aktifkanKameraBelakang() {
-      const video = document.getElementById('video');
-      const camLoadText = document.getElementById('camLoadText');
-      
-      if (streamObj) {
-        streamObj.getTracks().forEach(track => track.stop());
-      }
-      
-      camLoadText.style.display = 'block';
-      camLoadText.innerText = '⏳ Membuka Kamera...';
-      video.style.display = 'block';
-      document.getElementById('preview').style.display = 'none';
+  const video = document.getElementById('video');
+  const camLoadText = document.getElementById('camLoadText');
+  
+  if (streamObj) streamObj.getTracks().forEach(track => track.stop());
+  
+  camLoadText.style.display = 'block';
+  camLoadText.innerText = '⏳ Mencari Kamera Belakang...';
 
-      try {
-        // Coba mode "environment" (kamera belakang) TANPA resolusi paksaan
-        // Resolusi akan mengikuti bawaan HP agar tidak crash
-        const constraints = { 
-          video: { facingMode: { ideal: "environment" } } 
-        };
-        
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        streamObj = stream;
-        video.srcObject = stream;
-        video.onplaying = () => { camLoadText.style.display = 'none'; };
-      } catch (err) {
-        console.warn("Kamera belakang gagal, mencoba mode otomatis...", err);
-        try {
-          // Fallback: Biarkan browser memilih kamera terbaik (biasanya belakang)
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          streamObj = fallbackStream;
-          video.srcObject = fallbackStream;
-          video.onplaying = () => { camLoadText.style.display = 'none'; };
-        } catch (e) {
-          camLoadText.innerText = "❌ Kamera Tidak Ditemukan";
-        }
-      }
+  try {
+    // 1. Dapatkan daftar semua kamera
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    
+    // 2. Cari ID kamera yang mengandung kata "back" atau "environment"
+    // Kebanyakan HP memberi label "back" pada kamera belakang
+    let backCameraId = videoDevices.find(d => 
+      d.label.toLowerCase().includes('back') || 
+      d.label.toLowerCase().includes('environment')
+    )?.deviceId;
+
+    // 3. Paksa gunakan ID tersebut
+    const constraints = {
+      video: backCameraId ? { deviceId: { exact: backCameraId } } : { facingMode: { exact: "environment" } }
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    streamObj = stream;
+    video.srcObject = stream;
+    video.onplaying = () => { camLoadText.style.display = 'none'; };
+  } catch (err) {
+    // Fallback jika tetap gagal
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      streamObj = stream;
+      video.srcObject = stream;
+    } catch (e) {
+      camLoadText.innerText = "❌ Kamera Tidak Ditemukan";
     }
+  }
+}
 
    // --- PROSES BIDIK GAMBAR (AUTO-CROP & AUTO-ORIENTATION) ---
     function ambilGambar() {

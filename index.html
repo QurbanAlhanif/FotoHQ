@@ -75,7 +75,14 @@
 
         <!-- TAMBAHKAN capture="environment" untuk memaksa buka kamera belakang -->
        <!-- HAPUS capture="environment" AGAR BISA BUKA GALERI: -->
-        <input type="file" id="fileDarurat" accept="image/*" onchange="prosesFotoDarurat(this)" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"> 
+       <!-- <input type="file" id="fileDarurat" accept="image/*" onchange="prosesFotoDarurat(this)" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"> -->
+        <!-- Gunakan 'capture="environment"' hanya jika ingin memaksa kamera, 
+             tapi untuk pilihan bebas, hapus capture dan tambahkan 'accept="image/*"' saja -->
+        <input type="file" 
+               id="fileDarurat" 
+               accept="image/*" 
+               onchange="prosesFotoDarurat(this)" 
+               class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
       </div>
 
       <!-- TOMBOL UPLOAD -->
